@@ -1,9 +1,6 @@
 export async function onRequestPost(context) {
   try {
-    const request = context.request;
-    const env = context.env;
-
-    const body = await request.json();
+    const body = await context.request.json();
 
     const question = String(body.question || "").trim();
     const dashboardContext = body.context || {};
@@ -18,15 +15,15 @@ export async function onRequestPost(context) {
     const prompt = `
 You are the SIMPLIAXIS Dashboard AI Assistant.
 
-Answer ONLY from the dashboard context provided below.
+Answer ONLY using the supplied dashboard context.
 
 Rules:
 - Never invent numbers.
 - Never guess missing information.
-- Respect the current dashboard filters.
-- Respect user permissions.
-- Keep the answer concise and professional.
-- If the information is unavailable, say so clearly.
+- Respect current dashboard filters.
+- Respect the user's permissions.
+- Keep answers concise and professional.
+- If the information is unavailable, clearly say so.
 
 Dashboard Context:
 ${JSON.stringify(dashboardContext)}
@@ -41,7 +38,8 @@ ${question}
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${env.OPENAI_API_KEY}`
+          "Authorization":
+            `Bearer ${context.env.OPENAI_API_KEY}`
         },
         body: JSON.stringify({
           model: "gpt-5",
@@ -51,11 +49,15 @@ ${question}
     );
 
     if (!response.ok) {
-      console.error("OpenAI request failed:", await response.text());
+      console.error(
+        "OpenAI error:",
+        await response.text()
+      );
 
       return Response.json(
         {
-          error: "AI service is temporarily unavailable."
+          error:
+            "AI service is temporarily unavailable."
         },
         { status: 502 }
       );
@@ -70,11 +72,15 @@ ${question}
     });
 
   } catch (error) {
-    console.error("AI function error:", error);
+    console.error(
+      "AI function error:",
+      error
+    );
 
     return Response.json(
       {
-        error: "Unable to process the AI request."
+        error:
+          "Unable to process the AI request."
       },
       { status: 500 }
     );
