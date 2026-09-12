@@ -12,27 +12,6 @@ export async function onRequestPost(context) {
       );
     }
 
-    const prompt = `
-You are the SIMPLIAXIS Live Dashboard AI Assistant.
-
-Answer the user's question using ONLY the dashboard context provided below.
-
-Rules:
-- Never invent numbers.
-- Never guess missing information.
-- Respect current dashboard filters.
-- Respect the user's permissions.
-- Keep answers concise and professional.
-- If the supplied data is insufficient, clearly say that the data is unavailable.
-- Do not reveal passwords, OTPs, API keys, or secrets.
-
-Dashboard Context:
-${JSON.stringify(dashboardContext)}
-
-User Question:
-${question}
-`;
-
     const response = await fetch(
       "https://api.openai.com/v1/responses",
       {
@@ -44,46 +23,61 @@ ${question}
         },
         body: JSON.stringify({
           model: "gpt-5",
-          input: prompt
+          input: `You are the SIMPLIAXIS Dashboard AI Assistant.
+
+Answer this question using only the supplied dashboard context.
+
+Dashboard Context:
+${JSON.stringify(dashboardContext)}
+
+Question:
+${question}`
         })
       }
     );
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
+      console.error(
+        "OPENAI STATUS:",
+        response.status
+      );
 
       console.error(
-        "OpenAI request failed:",
-        errorText
+        "OPENAI RESPONSE:",
+        responseText
       );
 
       return Response.json(
         {
-          error:
-            "AI service is temporarily unavailable."
+          error: "OpenAI request failed.",
+          status: response.status,
+          details: responseText
         },
         { status: 502 }
       );
     }
 
-    const data = await response.json();
+    const data =
+      JSON.parse(responseText);
 
     return Response.json({
+      success: true,
       answer:
         data.output_text ||
-        "I could not generate an answer."
+        "No answer returned."
     });
 
   } catch (error) {
     console.error(
-      "AI function error:",
+      "AI FUNCTION ERROR:",
       error
     );
 
     return Response.json(
       {
-        error:
-          "Unable to process the AI request."
+        error: error.message
       },
       { status: 500 }
     );
